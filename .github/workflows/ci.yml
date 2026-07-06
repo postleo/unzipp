@@ -1,0 +1,51 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  self-test:
+    name: Self-test the action
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Create a sample archive
+        run: |
+          mkdir -p sample/nested
+          echo "hello world" > sample/hello.txt
+          echo "nested file" > sample/nested/data.txt
+          (cd sample && zip -r ../fixture.zip .)
+          rm -rf sample
+          ls -la
+
+      - name: Run unzip action (extract alongside)
+        id: unzip
+        uses: ./
+        with:
+          pattern: "*.zip"
+          destination: "extracted"
+
+      - name: Verify outputs and extracted contents
+        run: |
+          echo "extracted-count = ${{ steps.unzip.outputs.extracted-count }}"
+          echo "output-paths    = ${{ steps.unzip.outputs.output-paths }}"
+          test "${{ steps.unzip.outputs.extracted-count }}" = "1"
+          test -f extracted/fixture/hello.txt
+          test -f extracted/fixture/nested/data.txt
+          echo "Self-test passed."
+
+  shellcheck:
+    name: Lint shell script
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Run ShellCheck
+        run: shellcheck scripts/unzip.sh

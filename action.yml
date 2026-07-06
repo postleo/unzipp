@@ -1,0 +1,91 @@
+name: "unzipp"
+description: "Find and extract .zip archives anywhere in your repository, with optional auto-commit of the extracted contents back to the branch."
+author: "postleo"
+
+branding:
+  icon: "archive"
+  color: "blue"
+
+inputs:
+  path:
+    description: "Root directory to search for .zip files, relative to the repository."
+    required: false
+    default: "."
+  pattern:
+    description: "Glob pattern (relative to `path`) used to match archives, e.g. '**/*.zip' or 'assets/*.zip'."
+    required: false
+    default: "**/*.zip"
+  recursive:
+    description: "Search subdirectories of `path`. Ignored when `pattern` already contains '**'."
+    required: false
+    default: "true"
+  destination:
+    description: "Where to extract archives. Use 'alongside' to extract next to each zip, or a directory path to collect everything under one folder."
+    required: false
+    default: "alongside"
+  flatten:
+    description: "Extract contents directly into the destination instead of creating a subfolder named after each archive."
+    required: false
+    default: "false"
+  overwrite:
+    description: "Overwrite existing files when extracting. When false, existing files are kept."
+    required: false
+    default: "true"
+  delete-zip:
+    description: "Delete each .zip file after it has been successfully extracted."
+    required: false
+    default: "false"
+  fail-on-empty:
+    description: "Fail the step if no matching .zip files are found."
+    required: false
+    default: "false"
+  commit:
+    description: "Commit the extracted files (and deletions) back to the current branch."
+    required: false
+    default: "false"
+  commit-message:
+    description: "Commit message used when `commit` is true."
+    required: false
+    default: "chore: unzip archives [skip ci]"
+  commit-user-name:
+    description: "Git user.name used for the commit."
+    required: false
+    default: "github-actions[bot]"
+  commit-user-email:
+    description: "Git user.email used for the commit."
+    required: false
+    default: "github-actions[bot]@users.noreply.github.com"
+
+outputs:
+  extracted-count:
+    description: "Number of .zip archives that were extracted."
+    value: ${{ steps.unzip.outputs.extracted-count }}
+  extracted-archives:
+    description: "Newline-separated list of the .zip archives that were extracted."
+    value: ${{ steps.unzip.outputs.extracted-archives }}
+  output-paths:
+    description: "Newline-separated list of the directories the archives were extracted into."
+    value: ${{ steps.unzip.outputs.output-paths }}
+  committed:
+    description: "Whether a commit was created ('true' or 'false')."
+    value: ${{ steps.unzip.outputs.committed }}
+
+runs:
+  using: "composite"
+  steps:
+    - id: unzip
+      shell: bash
+      env:
+        INPUT_PATH: ${{ inputs.path }}
+        INPUT_PATTERN: ${{ inputs.pattern }}
+        INPUT_RECURSIVE: ${{ inputs.recursive }}
+        INPUT_DESTINATION: ${{ inputs.destination }}
+        INPUT_FLATTEN: ${{ inputs.flatten }}
+        INPUT_OVERWRITE: ${{ inputs.overwrite }}
+        INPUT_DELETE_ZIP: ${{ inputs.delete-zip }}
+        INPUT_FAIL_ON_EMPTY: ${{ inputs.fail-on-empty }}
+        INPUT_COMMIT: ${{ inputs.commit }}
+        INPUT_COMMIT_MESSAGE: ${{ inputs.commit-message }}
+        INPUT_COMMIT_USER_NAME: ${{ inputs.commit-user-name }}
+        INPUT_COMMIT_USER_EMAIL: ${{ inputs.commit-user-email }}
+      run: ${{ github.action_path }}/scripts/unzip.sh

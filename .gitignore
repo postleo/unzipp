@@ -1,0 +1,14 @@
+# Local test artifacts
+*.local
+.tmp/
+tmp/
+extracted/
+fixture.zip
+sample/
+
+# OS / editor cruft
+.DS_Store
+Thumbs.db
+*.swp
+.idea/
+.vscode/

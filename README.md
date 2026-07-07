@@ -1,4 +1,8 @@
-# unzipp
+<p align="center">
+  <img src="assets/unzipp.png" alt="unzipp" width="360">
+</p>
+
+<h1 align="center">unzipp</h1>
 
 A small, dependency-free GitHub Action that finds and extracts `.zip` archives
 anywhere in your repository — on any branch, including `main` — and can

@@ -27,6 +27,10 @@ inputs:
     description: "Extract contents directly into the destination instead of creating a subfolder named after each archive."
     required: false
     default: "false"
+  strip-components:
+    description: "Remove this many leading path components from each extracted entry. Use 1 to drop a single top-level folder that a zip wraps its contents in (like tar --strip-components)."
+    required: false
+    default: "0"
   overwrite:
     description: "Overwrite existing files when extracting. When false, existing files are kept."
     required: false
@@ -81,6 +85,7 @@ runs:
         INPUT_RECURSIVE: ${{ inputs.recursive }}
         INPUT_DESTINATION: ${{ inputs.destination }}
         INPUT_FLATTEN: ${{ inputs.flatten }}
+        INPUT_STRIP_COMPONENTS: ${{ inputs.strip-components }}
         INPUT_OVERWRITE: ${{ inputs.overwrite }}
         INPUT_DELETE_ZIP: ${{ inputs.delete-zip }}
         INPUT_FAIL_ON_EMPTY: ${{ inputs.fail-on-empty }}

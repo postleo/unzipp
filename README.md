@@ -121,6 +121,7 @@ A full, ready-to-copy workflow lives in
 | `recursive`         | `true`                               | Search subdirectories. Ignored when `pattern` contains `**`. |
 | `destination`       | `alongside`                          | `alongside` extracts next to each zip; otherwise a directory path to collect everything. |
 | `flatten`           | `false`                              | Extract directly into the destination instead of a per-archive subfolder. |
+| `strip-components`  | `0`                                  | Drop this many leading path components from extracted entries. Use `1` to remove a top-level folder a zip wraps its contents in (like `tar --strip-components`). |
 | `overwrite`         | `true`                               | Overwrite existing files when extracting. |
 | `delete-zip`        | `false`                              | Delete each `.zip` after successful extraction. |
 | `fail-on-empty`     | `false`                              | Fail the step if no archives match. |
@@ -159,8 +160,38 @@ Given `data/archive.zip`:
 | ------------------------------------------ | ------ |
 | `destination: alongside` (default)         | `data/archive/…` |
 | `destination: alongside`, `flatten: true`  | `data/…` |
+| `destination: "."`                         | `archive/…` (repository root) |
 | `destination: out`                         | `out/archive/…` |
 | `destination: out`, `flatten: true`        | `out/…` |
+
+### Dropping folders that are *inside* the zip
+
+`flatten` controls the folder **unzipp** creates. If the archive itself wraps
+everything in a top-level folder (e.g. the zip contains `release-v2/app.js`),
+use `strip-components` to remove it:
+
+| Archive contains          | `strip-components: 0` (default) | `strip-components: 1` |
+| ------------------------- | ------------------------------- | --------------------- |
+| `release-v2/app.js`       | `…/release-v2/app.js`           | `…/app.js`            |
+
+Combine `destination: "."`, `flatten: true`, and `strip-components: 1` to drop
+a zip's contents straight into the repository root.
+
+---
+
+## Interactive example workflow
+
+[`.github/workflows/example-unzip.yml`](.github/workflows/example-unzip.yml) is a
+ready-to-copy `workflow_dispatch` workflow. When you click **Run workflow** it
+prompts for:
+
+- **pattern** — which archives to extract
+- **destination** — `alongside`, `.` (repo root), or a folder name
+- **flatten** — put contents straight into the destination (no per-zip folder)
+- **strip_top_level_folder** — drop a wrapper folder that lives inside the zip
+- **delete_zip** — remove each `.zip` after extraction
+- **target_branch** — which branch to commit the results to (blank = current)
+- **create_branch** — create that branch if it doesn't exist yet
 
 ---
 

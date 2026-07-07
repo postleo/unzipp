@@ -42,6 +42,29 @@ jobs:
           test -f extracted/fixture/nested/data.txt
           echo "Self-test passed."
 
+      - name: Create an archive with a wrapper folder
+        run: |
+          mkdir -p wrapped/release-v2/sub
+          echo "app" > wrapped/release-v2/app.js
+          echo "deep" > wrapped/release-v2/sub/deep.txt
+          (cd wrapped && zip -r ../wrapped.zip release-v2)
+          rm -rf wrapped
+
+      - name: Run unzip action (strip the wrapper folder into root)
+        uses: ./
+        with:
+          pattern: "wrapped.zip"
+          destination: "stripped"
+          flatten: "true"
+          strip-components: "1"
+
+      - name: Verify strip-components dropped the wrapper folder
+        run: |
+          test -f stripped/app.js
+          test -f stripped/sub/deep.txt
+          test ! -e stripped/release-v2
+          echo "strip-components self-test passed."
+
   shellcheck:
     name: Lint shell script
     runs-on: ubuntu-latest

@@ -41,6 +41,7 @@ PATTERN="${INPUT_PATTERN:-**/*.zip}"
 RECURSIVE="${INPUT_RECURSIVE:-true}"
 DESTINATION="${INPUT_DESTINATION:-alongside}"
 FLATTEN="${INPUT_FLATTEN:-false}"
+STRIP_COMPONENTS="${INPUT_STRIP_COMPONENTS:-0}"
 OVERWRITE="${INPUT_OVERWRITE:-true}"
 DELETE_ZIP="${INPUT_DELETE_ZIP:-false}"
 FAIL_ON_EMPTY="${INPUT_FAIL_ON_EMPTY:-false}"
@@ -59,6 +60,10 @@ GITHUB_OUTPUT="${GITHUB_OUTPUT:-$(mktemp)}"
 command -v unzip >/dev/null 2>&1 || fail "The 'unzip' command is required but was not found on the runner."
 
 [ -d "$SEARCH_PATH" ] || fail "Search path '$SEARCH_PATH' does not exist or is not a directory."
+
+case "$STRIP_COMPONENTS" in
+  '' | *[!0-9]*) fail "strip-components must be a non-negative integer, got '$STRIP_COMPONENTS'." ;;
+esac
 
 # ---------------------------------------------------------------------------
 # Discover archives
@@ -141,11 +146,52 @@ for rel in "${ARCHIVES[@]}"; do
   group_start "Extracting $archive -> $target"
   mkdir -p "$target"
 
-  if unzip -q $UNZIP_MODE "$archive" -d "$target"; then
-    log "Extracted successfully."
+  if [ "$STRIP_COMPONENTS" -gt 0 ]; then
+    # Extract into a temp dir, then move each file up, dropping the first
+    # STRIP_COMPONENTS path segments (mirrors `tar --strip-components`).
+    tmp_extract="$(mktemp -d)"
+    if ! unzip -q -o "$archive" -d "$tmp_extract"; then
+      rm -rf "$tmp_extract"
+      group_end
+      fail "Failed to extract '$archive'."
+    fi
+
+    moved=0
+    skipped=0
+    while IFS= read -r -d '' f; do
+      rel="${f#"$tmp_extract"/}"
+      stripped="$rel"
+      i=0
+      while [ "$i" -lt "$STRIP_COMPONENTS" ]; do
+        case "$stripped" in
+          */*) stripped="${stripped#*/}" ;;
+          *) stripped="" ; break ;;
+        esac
+        i=$((i + 1))
+      done
+      # Not enough path components to strip: entry is dropped, like tar.
+      if [ -z "$stripped" ]; then
+        skipped=$((skipped + 1))
+        continue
+      fi
+      mkdir -p "$target/$(dirname "$stripped")"
+      if is_true "$OVERWRITE"; then
+        mv -f "$f" "$target/$stripped"
+      else
+        mv -n "$f" "$target/$stripped"
+      fi
+      moved=$((moved + 1))
+    done < <(find "$tmp_extract" -type f -print0)
+
+    rm -rf "$tmp_extract"
+    log "Extracted with strip-components=$STRIP_COMPONENTS ($moved file(s) placed, $skipped skipped)."
   else
-    group_end
-    fail "Failed to extract '$archive'."
+    if unzip -q $UNZIP_MODE "$archive" -d "$target"; then
+      log "Extracted successfully."
+    else
+      group_end
+      fail "Failed to extract '$archive'."
+    fi
   fi
 
   if is_true "$DELETE_ZIP"; then
@@ -177,9 +223,11 @@ if is_true "$DO_COMMIT"; then
     log "No changes to commit."
   else
     git commit -m "$COMMIT_MESSAGE"
-    if git push; then
+    # Push the current branch to a remote branch of the same name, creating it
+    # if it does not exist yet (works for freshly-created branches too).
+    if git push origin HEAD; then
       committed="true"
-      log "Committed and pushed extracted files."
+      log "Committed and pushed extracted files to branch '$(git rev-parse --abbrev-ref HEAD)'."
     else
       group_end
       fail "Commit succeeded but 'git push' failed. Ensure the workflow has 'contents: write' permission and a checkout with a push-capable token."

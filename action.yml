@@ -1,5 +1,5 @@
 name: "unzipp"
-description: "Find and extract .zip archives anywhere in your repository, with optional auto-commit of the extracted contents back to the branch."
+description: "Find and extract .zip archives anywhere in your repository"
 author: "postleo"
 
 branding:

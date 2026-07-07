@@ -4,7 +4,7 @@ author: "postleo"
 
 branding:
   icon: "archive"
-  color: "blue"
+  color: "yellow"
 
 inputs:
   path:

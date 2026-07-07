@@ -1,14 +1,31 @@
-# Example workflow showing how to consume this action in another repository.
-# Copy this file into `.github/workflows/` of your own repo and adjust as needed.
+# Example: one-off / on-demand extraction of .zip files already in your repo.
+#
+# Copy this file into `.github/workflows/` of your own repository, commit it,
+# then run it from the Actions tab:
+#   Actions -> Unzip Archives -> Run workflow -> pick a branch -> Run workflow
+#
+# Tip: for continuous, hands-off extraction instead of manual runs, replace the
+# `workflow_dispatch` trigger below with:
+#   on:
+#     push:
+#       paths: ["**/*.zip"]
 name: Unzip Archives
 
 on:
-  # Run whenever a .zip file changes on a branch...
-  push:
-    paths:
-      - "**/*.zip"
-  # ...or trigger it manually.
   workflow_dispatch:
+    inputs:
+      pattern:
+        description: "Glob for the archives to extract"
+        required: false
+        default: "**/*.zip"
+      delete-zip:
+        description: "Delete each .zip after it is extracted"
+        type: boolean
+        default: true
+      commit:
+        description: "Commit the extracted files back to the branch"
+        type: boolean
+        default: true
 
 permissions:
   contents: write # required so the action can commit extracted files back
@@ -20,16 +37,14 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Unzip archives and commit the results
+      - name: Unzip archives
+        id: unzip
         uses: postleo/unzipp@v1
         with:
-          # Search the whole repository for .zip files.
-          path: "."
-          pattern: "**/*.zip"
-          # Extract each archive next to itself into a folder of the same name.
-          destination: "alongside"
-          # Remove the .zip once extracted so it isn't tracked anymore.
-          delete-zip: "true"
-          # Commit the extracted files back to the branch that triggered the run.
-          commit: "true"
+          pattern: ${{ inputs.pattern }}
+          delete-zip: ${{ inputs.delete-zip }}
+          commit: ${{ inputs.commit }}
           commit-message: "chore: unzip archives [skip ci]"
+
+      - name: Summary
+        run: echo "Extracted ${{ steps.unzip.outputs.extracted-count }} archive(s)."

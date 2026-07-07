@@ -16,6 +16,54 @@ optionally commit the extracted contents back to the branch.
 
 ---
 
+## Quickstart — already have `.zip` files in your repo?
+
+Extract everything in one run, with no local tooling:
+
+**1.** Add this file to your repo as `.github/workflows/unzip.yml`:
+
+```yaml
+name: Unzip Archives
+
+on:
+  workflow_dispatch:        # run on demand from the Actions tab
+
+permissions:
+  contents: write           # lets the action commit the extracted files back
+
+jobs:
+  unzip:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: postleo/unzipp@v1
+        with:
+          pattern: "**/*.zip"
+          delete-zip: "true"
+          commit: "true"
+```
+
+**2.** Commit and push it.
+
+**3.** Open the **Actions** tab → **Unzip Archives** → **Run workflow** → pick your
+branch → **Run workflow**.
+
+unzipp scans the whole repo, extracts each `archive.zip` into an `archive/`
+folder next to it, deletes the original `.zip`, and commits the result back to
+your branch. A ready-to-copy version ships in
+[`.github/workflows/example-unzip.yml`](.github/workflows/example-unzip.yml).
+
+> **Want it fully automatic instead?** Swap the trigger so it runs every time a
+> `.zip` is pushed to any branch — no manual step:
+>
+> ```yaml
+> on:
+>   push:
+>     paths: ["**/*.zip"]
+> ```
+
+---
+
 ## Usage
 
 ```yaml
